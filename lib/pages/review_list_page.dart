@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import '../models/review_model.dart';
 import '../services/review_service.dart';
-import 'review_detail_page.dart';
+import 'add_review_page.dart';
 
 class ReviewListPage extends StatefulWidget {
   final int productId;
 
-  ReviewListPage({required this.productId});
+  const ReviewListPage({super.key, required this.productId});
 
   @override
-  _ReviewListPageState createState() => _ReviewListPageState();
+  State<ReviewListPage> createState() => _ReviewListPageState();
 }
 
 class _ReviewListPageState extends State<ReviewListPage> {
-  List reviews = [];
+  final ReviewService _service = ReviewService();
+  List<Review> reviews = [];
   bool loading = true;
 
   @override
@@ -22,11 +24,9 @@ class _ReviewListPageState extends State<ReviewListPage> {
   }
 
   Future<void> loadReviews() async {
-    final data = await ReviewService().getReviewByProduct(widget.productId);
-    setState(() {
-      reviews = data;
-      loading = false;
-    });
+    setState(() => loading = true);
+    reviews = await _service.getReviewByProduct(widget.productId);
+    setState(() => loading = false);
   }
 
   @override
@@ -35,43 +35,45 @@ class _ReviewListPageState extends State<ReviewListPage> {
       backgroundColor: const Color(0xFFF8EEDC),
       appBar: AppBar(
         backgroundColor: const Color(0xFFA47449),
-        title: const Text("Semua Review", style: TextStyle(color: Colors.white)),
+        title: const Text("Review", style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
-      ),
-
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: reviews.length,
-        itemBuilder: (context, index) {
-          final r = reviews[index];
-
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_comment),
+            onPressed: () async {
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ReviewDetailPage(review: r),
+                  builder: (_) => AddReviewPage(productId: widget.productId),
                 ),
               );
+              if (result == true) loadReviews();
             },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("⭐ ${r['rating']}",
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 5),
-                  Text(r['review']),
-                ],
+          ),
+        ],
+      ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : reviews.isEmpty
+          ? const Center(child: Text("Belum ada review"))
+          : ListView.builder(
+        itemCount: reviews.length,
+        itemBuilder: (context, i) {
+          final r = reviews[i];
+          return Card(
+            child: ListTile(
+              title: Text(r.review), // ⬅️ FIX ERROR DI SINI
+              subtitle: Row(
+                children: List.generate(
+                  5,
+                      (j) => Icon(
+                    Icons.star,
+                    size: 16,
+                    color: j < r.rating
+                        ? Colors.orange
+                        : Colors.grey,
+                  ),
+                ),
               ),
             ),
           );

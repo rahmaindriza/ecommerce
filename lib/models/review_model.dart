@@ -1,14 +1,18 @@
 class Review {
   final int productId;
-  final String reviewText;
+  final String review;
   final int rating;
 
-  Review({required this.productId, required this.reviewText, required this.rating});
+  Review({
+    required this.productId,
+    required this.review,
+    required this.rating,
+  });
 
   factory Review.fromJson(Map<String, dynamic> json) {
     return Review(
       productId: json['product_id'],
-      reviewText: json['review_text'], // pastikan ini sesuai backend
+      review: json['review'], // ⬅️ PENTING
       rating: json['rating'],
     );
   }

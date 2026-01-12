@@ -4,8 +4,11 @@ import '../services/product_service.dart';
 import 'product_detail_page.dart';
 import 'add_product_page.dart';
 import 'cart_list_page.dart';
+import 'review_list_page.dart'; // pake halaman list review
 
 class ProductListPage extends StatefulWidget {
+  const ProductListPage({super.key});
+
   @override
   State<ProductListPage> createState() => _ProductListPageState();
 }
@@ -20,36 +23,42 @@ class _ProductListPageState extends State<ProductListPage> {
     loadProducts();
   }
 
-  // ================= LOAD DATA =================
   Future<void> loadProducts() async {
     setState(() => loading = true);
     try {
       products = await ProductService.getProducts();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Error memuat produk: $e')),
       );
     }
     setState(() => loading = false);
   }
 
-  // ================= DELETE =================
   Future<void> deleteProduct(int id) async {
-    await ProductService.deleteProduct(id);
-    loadProducts();
+    try {
+      await ProductService.deleteProduct(id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Produk berhasil dihapus')),
+      );
+      loadProducts();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal hapus produk: $e')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8EEDC),
-
-      // ================= APPBAR =================
       appBar: AppBar(
         backgroundColor: const Color(0xFFA47449),
         title: const Text(
           "List Produk",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(
+              fontWeight: FontWeight.bold, color: Colors.white),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -58,14 +67,12 @@ class _ProductListPageState extends State<ProductListPage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => CartListPage()),
+                MaterialPageRoute(builder: (_) => const CartListPage()),
               );
             },
-          )
+          ),
         ],
       ),
-
-      // ================= ADD BUTTON (FIXED) =================
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFA47449),
         child: const Icon(Icons.add, color: Colors.white),
@@ -74,14 +81,9 @@ class _ProductListPageState extends State<ProductListPage> {
             context,
             MaterialPageRoute(builder: (_) => const AddProductPage()),
           );
-
-          if (result == true) {
-            loadProducts();
-          }
+          if (result == true) loadProducts();
         },
       ),
-
-      // ================= BODY =================
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : products.isEmpty
@@ -92,23 +94,19 @@ class _ProductListPageState extends State<ProductListPage> {
           itemCount: products.length,
           itemBuilder: (_, i) {
             final p = products[i];
-
             return InkWell(
               borderRadius: BorderRadius.circular(16),
-
-              // 👆 1 KLIK = DETAIL (READ ONLY)
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => ProductDetailPage(
                       product: p,
-                      readOnly: true,
+                      readOnly: true, // <- penting! biar mode detail
                     ),
                   ),
                 );
               },
-
               child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
@@ -119,12 +117,11 @@ class _ProductListPageState extends State<ProductListPage> {
                       color: Colors.brown.withOpacity(0.15),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
-                    )
+                    ),
                   ],
                 ),
                 child: Row(
                   children: [
-                    // ===== ICON =====
                     Container(
                       width: 100,
                       height: 100,
@@ -141,8 +138,6 @@ class _ProductListPageState extends State<ProductListPage> {
                         color: Color(0xFF4B322D),
                       ),
                     ),
-
-                    // ===== INFO =====
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.all(12),
@@ -178,35 +173,48 @@ class _ProductListPageState extends State<ProductListPage> {
                               ),
                             ),
                             const SizedBox(height: 10),
-
-                            // ===== ACTION =====
                             Row(
                               children: [
+                                // Edit Produk
                                 IconButton(
                                   icon: const Icon(Icons.edit,
                                       color: Colors.blue),
                                   onPressed: () async {
-                                    final result =
-                                    await Navigator.push(
+                                    final result = await Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) =>
                                             ProductDetailPage(
                                               product: p,
+                                              readOnly: false,
                                             ),
                                       ),
                                     );
-
-                                    if (result == true) {
+                                    if (result == true)
                                       loadProducts();
-                                    }
                                   },
                                 ),
+                                // Hapus Produk
                                 IconButton(
                                   icon: const Icon(Icons.delete,
                                       color: Colors.red),
                                   onPressed: () {
                                     deleteProduct(p.id);
+                                  },
+                                ),
+                                // Review Produk
+                                IconButton(
+                                  icon: const Icon(Icons.reviews,
+                                      color: Colors.orange),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            ReviewListPage(
+                                                productId: p.id),
+                                      ),
+                                    );
                                   },
                                 ),
                               ],
