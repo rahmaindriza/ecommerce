@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ReviewService {
-  final String baseUrl = "http://192.168.18.238:5002";
+  final String baseUrl = "http://10.11.12.234:5002";
 
   // =============================
   // 1️⃣ Ambil semua review

@@ -1,34 +1,60 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../models/cart_model.dart';
+import '../models/product_model.dart';
+import 'dart:async';
 
 class CartService {
-  final baseUrl = "http://192.168.18.238:8000";
+  // List sementara untuk menyimpan Item di memory
+  static final List<Item> _cartItems = [];
 
-  Future<Model> getCart() async {
-    final url = Uri.parse("$baseUrl/carts");
-    final res = await http.get(url);
+  // Ambil semua item di cart
+  static List<Item> getCart() {
+    return _cartItems;
+  }
 
-    if (res.statusCode == 200) {
-      return modelFromJson(res.body);
+  // Tambah produk ke cart
+  // Jika produk sudah ada, jumlahkan quantity
+  static Future<bool> addToCart(ProductModel product, {int quantity = 1}) async {
+    try {
+      // Cek apakah produk sudah ada
+      final index = _cartItems.indexWhere((item) => item.id == product.id.toString());
+      if (index >= 0) {
+        _cartItems[index].quantity += quantity;
+      } else {
+        _cartItems.add(
+          Item(
+            id: product.id.toString(),
+            name: product.name,
+            quantity: quantity,
+            price: product.price,
+          ),
+        );
+      }
+
+      await Future.delayed(const Duration(milliseconds: 200));
+      return true;
+    } catch (e) {
+      return false;
     }
-    throw Exception("Gagal load cart");
   }
 
-  Future<bool> deleteItem(int id) async {
-    final url = Uri.parse("$baseUrl/carts/$id");
-    final res = await http.delete(url);
-
-    return res.statusCode == 200;
+  // Hapus item dari cart berdasarkan item id
+  static Future<bool> removeFromCart(String itemId) async {
+    try {
+      _cartItems.removeWhere((item) => item.id == itemId);
+      await Future.delayed(const Duration(milliseconds: 200));
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
-  Future<bool> addToCart(int productId) async {
-    final url = Uri.parse("$baseUrl/carts/add");
+  // Kosongkan cart
+  static void clearCart() {
+    _cartItems.clear();
+  }
 
-    final res = await http.post(url, body: {
-      "product_id": productId.toString()
-    });
-
-    return res.statusCode == 200;
+  // Ambil total harga
+  static int getTotal() {
+    return _cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
   }
 }

@@ -4,13 +4,15 @@ import '../services/cart_service.dart';
 import 'cart_detail_page.dart';
 
 class CartListPage extends StatefulWidget {
+  const CartListPage({super.key});
+
   @override
   State<CartListPage> createState() => _CartListPageState();
 }
 
 class _CartListPageState extends State<CartListPage> {
   bool loading = true;
-  Model? cart;
+  CartModel? cart;
 
   @override
   void initState() {
@@ -18,26 +20,29 @@ class _CartListPageState extends State<CartListPage> {
     loadCart();
   }
 
-  loadCart() async {
-    cart = await CartService().getCart();
+  Future<void> loadCart() async {
+    setState(() => loading = true);
+    cart = CartModel(items: CartService.getCart());
     setState(() => loading = false);
+  }
+
+  Future<void> deleteItem(String productId) async {
+    await CartService.removeFromCart(productId);
+    loadCart();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8EEDC), // Cream background
-
+      backgroundColor: const Color(0xFFF8EEDC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFA47449), // Brown
+        backgroundColor: const Color(0xFFA47449),
         title: const Text(
           "Keranjang",
           style: TextStyle(color: Colors.white),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 1,
       ),
-
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : cart == null || cart!.items.isEmpty
@@ -66,12 +71,11 @@ class _CartListPageState extends State<CartListPage> {
                 ),
               );
             },
-
             child: Container(
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF3E4C8), // card cream
+                color: const Color(0xFFF3E4C8),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -81,7 +85,6 @@ class _CartListPageState extends State<CartListPage> {
                   ),
                 ],
               ),
-
               child: Row(
                 children: [
                   // ICON PRODUK
@@ -98,7 +101,6 @@ class _CartListPageState extends State<CartListPage> {
                       color: Color(0xFF4B322D),
                     ),
                   ),
-
                   const SizedBox(width: 14),
 
                   // DETAIL ITEM
@@ -114,9 +116,7 @@ class _CartListPageState extends State<CartListPage> {
                             color: Color(0xFF4B322D),
                           ),
                         ),
-
                         const SizedBox(height: 4),
-
                         Text(
                           "Qty: ${item.quantity}",
                           style: const TextStyle(
@@ -124,9 +124,7 @@ class _CartListPageState extends State<CartListPage> {
                             color: Color(0xFF4B322D),
                           ),
                         ),
-
                         const SizedBox(height: 6),
-
                         Text(
                           "Rp ${item.price}",
                           style: const TextStyle(
@@ -141,15 +139,9 @@ class _CartListPageState extends State<CartListPage> {
 
                   // DELETE BUTTON
                   IconButton(
-                    icon: const Icon(
-                      Icons.delete,
-                      color: Colors.red,
-                    ),
-                    onPressed: () async {
-                      await CartService().deleteItem(item.id);
-                      loadCart();
-                    },
-                  )
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => deleteItem(item.id),
+                  ),
                 ],
               ),
             ),
@@ -170,13 +162,12 @@ class _CartListPageState extends State<CartListPage> {
             )
           ],
         ),
-
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
+            const Text(
               "Total:",
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF4B322D),

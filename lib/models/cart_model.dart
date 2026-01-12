@@ -1,35 +1,37 @@
 // To parse this JSON data, do
 //
-//     final model = modelFromJson(jsonString);
+//     final cartModel = cartModelFromJson(jsonString);
 
 import 'dart:convert';
 
-Model modelFromJson(String str) => Model.fromJson(json.decode(str));
+CartModel cartModelFromJson(String str) =>
+    CartModel.fromJson(json.decode(str));
 
-String modelToJson(Model data) => json.encode(data.toJson());
+String cartModelToJson(CartModel data) => json.encode(data.toJson());
 
-class Model {
+class CartModel {
   List<Item> items;
-  int total;
 
-  Model({
+  CartModel({
     required this.items,
-    required this.total,
   });
 
-  factory Model.fromJson(Map<String, dynamic> json) => Model(
-    items: List<Item>.from(json["items"].map((x) => Item.fromJson(x))),
-    total: json["total"],
+  // Total otomatis dihitung dari items
+  int get total =>
+      items.fold(0, (sum, item) => sum + (item.price * item.quantity));
+
+  factory CartModel.fromJson(Map<String, dynamic> json) => CartModel(
+    items: List<Item>.from(
+        json["items"].map((x) => Item.fromJson(x))),
   );
 
   Map<String, dynamic> toJson() => {
     "items": List<dynamic>.from(items.map((x) => x.toJson())),
-    "total": total,
   };
 }
 
 class Item {
-  int id;
+  String id;
   String name;
   int quantity;
   int price;
@@ -42,7 +44,7 @@ class Item {
   });
 
   factory Item.fromJson(Map<String, dynamic> json) => Item(
-    id: json["id"],
+    id: json["id"].toString(),
     name: json["name"],
     quantity: json["quantity"],
     price: json["price"],

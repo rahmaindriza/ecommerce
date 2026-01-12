@@ -1,274 +1,176 @@
 import 'package:flutter/material.dart';
 import '../models/product_model.dart';
+import '../services/product_service.dart';
 import '../services/cart_service.dart';
-import '../services/review_service.dart';
-import 'add_review_page.dart';
-
-// NEW
-import 'review_list_page.dart';
-import 'review_detail_page.dart';
+import 'cart_list_page.dart';
 
 class ProductDetailPage extends StatefulWidget {
-  final ProductModel product;
+  final ProductModel? product;
+  final bool readOnly; // true = detail, false = edit
 
-  ProductDetailPage({required this.product});
+  const ProductDetailPage({
+    super.key,
+    this.product,
+    this.readOnly = false,
+  });
 
   @override
-  _ProductDetailPageState createState() => _ProductDetailPageState();
+  State<ProductDetailPage> createState() => _ProductDetailPageState();
 }
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
-  List<dynamic> reviews = [];
-  bool loadingReviews = true;
+  final nameCtrl = TextEditingController();
+  final priceCtrl = TextEditingController();
+  final descCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    loadReviews();
+    if (widget.product != null) {
+      nameCtrl.text = widget.product!.name;
+      priceCtrl.text = widget.product!.price.toString();
+      descCtrl.text = widget.product!.description ?? '';
+    }
   }
 
-  Future<void> loadReviews() async {
-    final data =
-    await ReviewService().getReviewByProduct(widget.product.id);
-    setState(() {
-      reviews = data;
-      loadingReviews = false;
-    });
+  @override
+  void dispose() {
+    nameCtrl.dispose();
+    priceCtrl.dispose();
+    descCtrl.dispose();
+    super.dispose();
+  }
+
+  // ================= SAVE EDIT =================
+  Future<void> save() async {
+    if (nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama dan harga wajib diisi')),
+      );
+      return;
+    }
+
+    final data = {
+      'name': nameCtrl.text,
+      'price': int.parse(priceCtrl.text),
+      'description': descCtrl.text.isEmpty ? null : descCtrl.text,
+    };
+
+    await ProductService.updateProduct(widget.product!.id, data);
+    Navigator.pop(context, true);
+  }
+
+  // ================= ADD TO CART =================
+  Future<void> addToCart() async {
+    if (widget.product == null) return;
+
+    final success = await CartService.addToCart(widget.product!);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+            ? 'Produk berhasil ditambahkan ke keranjang'
+            : 'Gagal menambahkan produk ke keranjang'),
+      ),
+    );
+  }
+
+  // ================= BUY NOW =================
+  void buyNow() {
+    if (widget.product == null) return;
+
+    Navigator.pushNamed(context, '/checkout', arguments: widget.product);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDetail = widget.readOnly;
+    final isEdit = widget.product != null && !isDetail;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8EEDC),
       appBar: AppBar(
         backgroundColor: const Color(0xFFA47449),
         title: Text(
-          widget.product.name,
+          isDetail
+              ? 'Detail Produk'
+              : (isEdit ? 'Edit Produk' : 'Tambah Produk'),
           style: const TextStyle(color: Colors.white),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          if (isDetail)
+            IconButton(
+              icon: const Icon(Icons.shopping_cart_outlined),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => CartListPage()),
+                );
+              },
+            ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-
-              // --------------------
-              // CARD PRODUK
-              // --------------------
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3E4C8),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.brown.withOpacity(0.15),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 150,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD7B899),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(Icons.shopping_bag,
-                          size: 80, color: Color(0xFF4B322D)),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      widget.product.name,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4B322D),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Rp ${widget.product.price}",
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              readOnly: isDetail,
+              decoration: const InputDecoration(
+                labelText: 'Nama Produk',
+                border: OutlineInputBorder(),
               ),
-
-              const SizedBox(height: 20),
-
-              // DESKRIPSI
-              const Text(
-                "Deskripsi",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF4B322D),
-                ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: priceCtrl,
+              readOnly: isDetail,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Harga',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 8),
-              Text(
-                widget.product.deskripsion,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF4B322D),
-                ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: descCtrl,
+              readOnly: isDetail,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'Deskripsi',
+                border: OutlineInputBorder(),
               ),
+            ),
+            const SizedBox(height: 24),
 
-              const SizedBox(height: 25),
-
-              // --------------------
-              // LIST REVIEW
-              // --------------------
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Text(
-                    "Review Produk",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF4B322D),
-                    ),
+            // ===== BUTTONS =====
+            if (!isDetail)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFA47449),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-
-                  const SizedBox(width: 10), // jarak kecil
-
-                  // Tombol Lihat Semua + Tambah
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ReviewListPage(
-                                    productId: widget.product.id,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              "Lihat Semua",
-                              textAlign: TextAlign.center,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(width: 8),
-
-                        Flexible(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFFA47449),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                            ),
-                            onPressed: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      AddReviewPage(productId: widget.product.id),
-                                ),
-                              );
-                              if (result == true) {
-                                loadReviews(); // refresh
-                              }
-                            },
-                            child: const Text(
-                              "Tambah",
-                              textAlign: TextAlign.center,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                ],
+                ),
+                onPressed: save,
+                child: const Text(
+                  'Update Produk',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
 
-              const SizedBox(height: 10),
-
-              loadingReviews
-                  ? const Center(child: CircularProgressIndicator())
-                  : reviews.isEmpty
-                  ? const Text("Belum ada review.")
-                  : Column(
-                children: reviews.take(3).map((r) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ReviewDetailPage(
-                            review: r,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "⭐ ${r['rating']}",
-                            style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(r["review"]),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-
-              const SizedBox(height: 30),
-
-              // --------------------
-              // BUTTON BAWAH
-              // --------------------
+            if (isDetail && widget.product != null)
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.shopping_cart),
+                      onPressed: addToCart,
+                      icon: const Icon(Icons.add_shopping_cart),
+                      label: const Text("Keranjang"),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFA47449),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -276,46 +178,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      label: const Text(
-                        "Keranjang",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      onPressed: () async {
-                        bool ok =
-                        await CartService().addToCart(widget.product.id);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: ok ? Colors.green : Colors.red,
-                            content: Text(ok
-                                ? "Berhasil ditambahkan ke keranjang!"
-                                : "Gagal menambah"),
-                          ),
-                        );
-                      },
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
+                    child: ElevatedButton.icon(
+                      onPressed: buyNow,
+                      icon: const Icon(Icons.flash_on),
+                      label: const Text("Beli Sekarang"),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: Colors.orangeAccent,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () {},
-                      child: const Text(
-                        "Beli Sekarang",
-                        style: TextStyle(color: Colors.white),
-                      ),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

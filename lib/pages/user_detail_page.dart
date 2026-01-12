@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import '../models/user_model.dart';
 
 class UserDetailPage extends StatelessWidget {
-  final dynamic user; // data user dari list
+  final User user;
 
   const UserDetailPage({Key? key, required this.user}) : super(key: key);
 
-  // Fungsi untuk warna role
+  // Warna berdasarkan role
   Color getRoleColor(String role) {
-    switch (role) {
+    switch (role.toLowerCase()) {
       case 'admin':
         return Colors.redAccent;
       case 'seller':
@@ -20,9 +21,10 @@ class UserDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String name = user['name'] ?? '-';
-    String email = user['email'] ?? '-';
-    String role = user['role'] ?? '-';
+    // Jika role kosong/null, default ke "customer"
+    final displayRole = (user.role != null && user.role.isNotEmpty) ? user.role : 'customer';
+    final displayName = (user.name != null && user.name.isNotEmpty) ? user.name : 'User';
+    final displayEmail = (user.email != null && user.email.isNotEmpty) ? user.email : '-';
 
     return Scaffold(
       appBar: AppBar(
@@ -30,68 +32,63 @@ class UserDetailPage extends StatelessWidget {
         backgroundColor: const Color(0xFFA47449),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             // Avatar
             CircleAvatar(
-              radius: 50,
+              radius: 60,
               backgroundColor: const Color(0xFFA47449),
               child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: const TextStyle(fontSize: 40, color: Colors.white),
+                displayName[0].toUpperCase(),
+                style: const TextStyle(fontSize: 50, color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 16),
 
             // Nama
             Text(
-              name,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF4B322D),
-              ),
+              displayName,
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF4B322D)),
             ),
             const SizedBox(height: 8),
 
-            // Role sebagai Chip
+            // Role Chip
             Chip(
               label: Text(
-                role.toUpperCase(),
+                displayRole.toUpperCase(),
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
-              backgroundColor: getRoleColor(role),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              backgroundColor: getRoleColor(displayRole),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // Card info
+            // Informasi User
             Card(
               elevation: 3,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.email, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          email,
-                          style: const TextStyle(fontSize: 16),
+                        const Icon(Icons.email, color: Color(0xFFA47449)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(displayEmail, style: const TextStyle(fontSize: 16, color: Color(0xFF4B322D))),
                         ),
                       ],
                     ),
-                    const Divider(height: 20),
+                    const Divider(height: 32, thickness: 1),
                     Row(
                       children: [
-                        const Icon(Icons.person, size: 20),
-                        const SizedBox(width: 8),
+                        const Icon(Icons.person, color: Color(0xFFA47449)),
+                        const SizedBox(width: 12),
                         Text(
-                          role,
-                          style: const TextStyle(fontSize: 16),
+                          displayRole[0].toUpperCase() + displayRole.substring(1),
+                          style: const TextStyle(fontSize: 16, color: Color(0xFF4B322D)),
                         ),
                       ],
                     ),
@@ -99,20 +96,21 @@ class UserDetailPage extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 32),
 
-            const SizedBox(height: 24),
-
-            // Kembali
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              icon: const Icon(Icons.arrow_back),
-              label: const Text("Kembali"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFA47449),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            // Tombol Kembali
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text("Kembali"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFA47449),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
